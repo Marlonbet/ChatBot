@@ -1,1 +1,36 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chat Avanzado con Gemini</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="styles/main.css">
+</head>
+<body>
+    <div class="sidebar">
+        <div class="sidebar-header">
+            <h2>Historial de Chats</h2>
+            <button id="closeSidebarBtn" class="close-btn"><i class="fas fa-times"></i></button>
+        </div>
+        <div id="chatList" class="chat-list"></div>
+        <div class="sidebar-footer">
+            <button id="newChatBtn" class="btn-primary"><i class="fas fa-plus"></i> Nuevo Chat</button>
+            <button id="clearHistoryBtn" class="btn-danger"><i class="fas fa-trash"></i> Limpiar Historial</button>
+        </div>
+    </div>
+    
+    <div class="main-container">
+        <button id="toggleSidebarBtn" class="mobile-toggle"><i class="fas fa-bars"></i></button>
+        
+        <div id="chatHistory" class="chat-history"></div>
+        
+        <div class="input-container">
+            <textarea id="userInput" placeholder="Escribe tu mensaje..." rows="3"></textarea>
+            <button id="sendButton" class="btn-send"><i class="fas fa-paper-plane"></i></button>
+        </div>
+    </div>
 
+    <script type="module" src="scripts/main.js"></script>
+</body>
+</html>
