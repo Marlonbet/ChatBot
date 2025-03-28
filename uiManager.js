@@ -21,16 +21,27 @@ export class UIManager {
             toggleSidebarBtn: document.getElementById('toggleSidebarBtn')
         };
 
-        console.log("📌 Elementos UI:", this.elements);
         this.autoScrollEnabled = true;
         this.typingIndicator = null;
         this.setupEventListeners();
+        this.setupScrollHandler();
+        this.setupCopyButtons();
+    }
+
+    setupScrollHandler() {
+        if (!this.elements.chatHistory) return;
+        
+        this.elements.chatHistory.addEventListener('scroll', () => {
+            const { scrollTop, scrollHeight, clientHeight } = this.elements.chatHistory;
+            this.autoScrollEnabled = (scrollHeight - scrollTop - clientHeight) < 100;
+        });
     }
 
     setupEventListeners() {
         if (this.elements.sendButton) {
             this.elements.sendButton.addEventListener('click', () => this.emitEvent('sendMessage'));
         }
+        
         if (this.elements.userInput) {
             this.elements.userInput.addEventListener('keydown', (e) => {
                 if (e.key === 'Enter' && !e.shiftKey) {
@@ -39,9 +50,11 @@ export class UIManager {
                 }
             });
         }
+        
         if (this.elements.newChatBtn) {
             this.elements.newChatBtn.addEventListener('click', () => this.emitEvent('newChat'));
         }
+        
         if (this.elements.clearHistoryBtn) {
             this.elements.clearHistoryBtn.addEventListener('click', () => {
                 if (confirm('¿Borrar todo el historial?')) {
@@ -49,22 +62,125 @@ export class UIManager {
                 }
             });
         }
+        
         if (this.elements.chatList) {
             this.elements.chatList.addEventListener('click', (e) => {
                 const chatItem = e.target.closest('.chat-item');
                 if (chatItem) this.emitEvent('selectChat', chatItem.dataset.id);
             });
         }
+        
         if (this.elements.toggleSidebarBtn) {
             this.elements.toggleSidebarBtn.addEventListener('click', () => this.toggleSidebar());
         }
+        
         if (this.elements.closeSidebarBtn) {
             this.elements.closeSidebarBtn.addEventListener('click', () => this.toggleSidebar(false));
         }
     }
 
-    emitEvent(eventName, data = null) {
-        document.dispatchEvent(new CustomEvent(eventName, { detail: data }));
+    setupCopyButtons() {
+        document.addEventListener('click', (e) => {
+            if (e.target.closest('.copy-btn')) {
+                this.handleCopyCode(e.target.closest('.copy-btn'));
+            }
+        });
+    }
+
+    handleCopyCode(button) {
+        const codeBlock = button.closest('.code-container')?.querySelector('.code-block');
+        if (!codeBlock) return;
+
+        const codeContent = codeBlock.textContent;
+        navigator.clipboard.writeText(codeContent).then(() => {
+            const icon = button.querySelector('i');
+            const originalIcon = icon.className;
+            
+            icon.className = 'fas fa-check';
+            button.classList.add('copied');
+            
+            setTimeout(() => {
+                icon.className = originalIcon;
+                button.classList.remove('copied');
+            }, 2000);
+        }).catch(err => {
+            console.error('Error al copiar:', err);
+            button.classList.add('error');
+        });
+    }
+
+    processCodeBlocks(text) {
+        const parts = text.split('```');
+        return parts.map((part, index) => {
+            if (index % 2 === 1) {
+                const languageMatch = part.match(/^\s*(\w+)/);
+                const language = languageMatch ? languageMatch[1] : '';
+                const codeContent = part.replace(/^\s*\w+\s*/, '');
+                return `
+                    <div class="code-container">
+                        <div class="code-header">
+                            <span class="language-label">${language}</span>
+                            <button class="copy-btn" title="Copiar código">
+                                <i class="fas fa-copy"></i>
+                            </button>
+                        </div>
+                        <pre class="code-block">${this.escapeHtml(codeContent)}</pre>
+                    </div>
+                `;
+            }
+            return `<p>${this.escapeHtml(part)}</p>`;
+        }).join('');
+    }
+
+    async renderMessageWithTyping(role, fullText) {
+        if (!this.elements.chatHistory) return;
+        
+        const messageDiv = document.createElement('div');
+        messageDiv.className = `message ${role}-message`;
+        this.elements.chatHistory.appendChild(messageDiv);
+
+        let displayedText = '';
+        const chunkSize = this.calculateChunkSize(fullText);
+        const hasCode = fullText.includes('```');
+
+        for (let i = 0; i < fullText.length; i += chunkSize) {
+            displayedText += fullText.substring(i, i + chunkSize);
+            
+            if (hasCode) {
+                messageDiv.innerHTML = this.processCodeBlocks(displayedText);
+            } else {
+                messageDiv.innerHTML = `<p>${this.escapeHtml(displayedText)}</p>`;
+            }
+
+            if (this.autoScrollEnabled) {
+                this.scrollToBottom({ behavior: 'auto' });
+            }
+            
+            await new Promise(resolve => setTimeout(resolve, 10 + Math.random() * 10));
+        }
+
+        if (hasCode) {
+            messageDiv.innerHTML = this.processCodeBlocks(fullText);
+        }
+        
+        if (this.autoScrollEnabled) {
+            this.scrollToBottom({ behavior: 'smooth' });
+        }
+    }
+
+    renderMessage(role, fullText) {
+        if (!this.elements.chatHistory) return;
+        const messageDiv = document.createElement('div');
+        messageDiv.className = `message ${role}-message`;
+        
+        if (fullText.includes('```')) {
+            messageDiv.innerHTML = this.processCodeBlocks(fullText);
+        } else {
+            messageDiv.innerHTML = `<p>${this.escapeHtml(fullText)}</p>`;
+        }
+        
+        this.elements.chatHistory.appendChild(messageDiv);
+        this.scrollToBottom();
     }
 
     showTypingIndicator() {
@@ -72,7 +188,6 @@ export class UIManager {
 
         this.typingIndicator = document.createElement('div');
         this.typingIndicator.className = 'typing-indicator';
-        // Se puede animar con CSS usando la clase .typing-indicator
         this.typingIndicator.innerHTML = `<p>🟡 Escribiendo...</p>`;
         this.elements.chatHistory.appendChild(this.typingIndicator);
         this.scrollToBottom();
@@ -85,50 +200,19 @@ export class UIManager {
         }
     }
 
-    // Método para renderizar un mensaje inmediatamente (sin efecto de tipeo)
-    renderMessage(role, fullText) {
-        if (!this.elements.chatHistory) return;
-        const messageDiv = document.createElement('div');
-        messageDiv.className = `message ${role}-message`;
-        messageDiv.innerHTML = `<p>${this.escapeHtml(fullText)}</p>`;
-        this.elements.chatHistory.appendChild(messageDiv);
-        this.scrollToBottom();
-    }
-
-    // Método que aplica efecto de escritura (solo para respuestas de la IA)
-    async renderMessageWithTyping(role, fullText) {
-        if (!this.elements.chatHistory) return;
-        const messageDiv = document.createElement('div');
-        messageDiv.className = `message ${role}-message`;
-        this.elements.chatHistory.appendChild(messageDiv);
-
-        if (role === 'ai') {
-            let chunkSize = this.calculateChunkSize(fullText) * 2;
-            let displayedText = '';
-            for (let i = 0; i < fullText.length; i += chunkSize) {
-                displayedText += fullText.substring(i, i + chunkSize);
-                messageDiv.innerHTML = `<p>${this.escapeHtml(displayedText)}</p>`;
-                if (this.autoScrollEnabled) {
-                    this.scrollToBottom();
-                }
-                await new Promise(resolve => setTimeout(resolve, 10 + Math.random() * 10));
-            }
-        } else {
-            messageDiv.innerHTML = `<p>${this.escapeHtml(fullText)}</p>`;
+    scrollToBottom(options = { behavior: 'smooth' }) {
+        if (this.elements.chatHistory) {
+            this.elements.chatHistory.scrollTo({
+                top: this.elements.chatHistory.scrollHeight,
+                ...options
+            });
         }
     }
 
     calculateChunkSize(text) {
-        return text.length < 100 ? 1 : text.length < 500 ? 2 : 3;
-    }
-
-    scrollToBottom() {
-        if (this.elements.chatHistory) {
-            this.elements.chatHistory.scrollTo({ 
-                top: this.elements.chatHistory.scrollHeight, 
-                behavior: 'smooth' 
-            });
-        }
+        const baseSize = 5;
+        const maxSize = 20;
+        return text.length < 100 ? maxSize : baseSize;
     }
 
     escapeHtml(text) {
@@ -165,18 +249,8 @@ export class UIManager {
             }
         }
     }
-}
 
-// Función global para copiar código, si es necesaria.
-window.copyCode = function(button) {
-    const codeBlock = button.parentElement;
-    const codeElement = codeBlock.querySelector('.code-block');
-    if (!codeElement) return;
-    const code = codeElement.textContent.replace('Copiar', '').trim();
-    navigator.clipboard.writeText(code).then(() => {
-        button.innerHTML = '<i class="fas fa-check"></i>';
-        setTimeout(() => {
-            button.innerHTML = '<i class="fas fa-copy"></i>';
-        }, 2000);
-    });
-};
+    emitEvent(eventName, data = null) {
+        document.dispatchEvent(new CustomEvent(eventName, { detail: data }));
+    }
+}
