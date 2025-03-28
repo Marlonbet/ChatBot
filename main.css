@@ -5,6 +5,13 @@
     --text-color: #e6e6e6;
     --error-color: #e94560;
     --success-color: #4ccd99;
+    --code-bg: #1e1e1e;
+    --code-header-bg: #252526;
+    --code-border: #3c3c3c;
+    --code-language: #569cd6;
+    --code-text: #d4d4d4;
+    --copy-btn: #858585;
+    --copy-btn-hover: #9cdcfe;
 }
 
 * {
@@ -116,6 +123,10 @@ textarea {
     font-size: 1rem;
 }
 
+textarea:focus {
+    outline: 1px solid var(--accent-color);
+}
+
 .message {
     max-width: 85%;
     padding: 15px 20px;
@@ -145,6 +156,11 @@ textarea {
     align-items: center;
     gap: 8px;
     justify-content: center;
+    transition: opacity 0.2s;
+}
+
+.btn-primary:hover {
+    opacity: 0.9;
 }
 
 .btn-danger {
@@ -158,6 +174,11 @@ textarea {
     align-items: center;
     gap: 8px;
     justify-content: center;
+    transition: opacity 0.2s;
+}
+
+.btn-danger:hover {
+    opacity: 0.9;
 }
 
 .btn-send {
@@ -171,79 +192,96 @@ textarea {
     display: flex;
     justify-content: center;
     align-items: center;
+    transition: transform 0.2s;
 }
 
-.code-block {
-    background-color: #1e1e1e;
-    padding: 15px;
-    border-radius: 8px;
-    font-family: 'Courier New', Courier, monospace;
-    overflow-x: auto;
-    position: relative;
-    margin: 10px 0;
+.btn-send:hover {
+    transform: scale(1.05);
 }
 
-.copy-btn {
-    position: absolute;
-    top: 8px;
-    right: 8px;
-    background-color: var(--accent-color);
-    color: white;
-    border: none;
-    width: 30px;
-    height: 30px;
-    border-radius: 4px;
-    cursor: pointer;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    opacity: 0;
-    transition: opacity 0.2s;
-}
-
-.code-block:hover .copy-btn {
-    opacity: 1;
-}
-
-/* Estilos para código */
+/* Estilos mejorados para bloques de código */
 .code-container {
-    background: #1e1e1e;
+    background: var(--code-bg);
     border-radius: 8px;
-    margin: 10px 0;
+    margin: 15px 0;
     overflow: hidden;
+    border: 1px solid var(--code-border);
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
 }
 
 .code-header {
     display: flex;
-    justify-content: space-between;
     align-items: center;
-    padding: 8px 12px;
-    background: #2d2d2d;
+    justify-content: space-between;
+    padding: 10px 15px;
+    background: var(--code-header-bg);
+    border-bottom: 1px solid var(--code-border);
 }
 
 .language-label {
-    color: #569cd6;
-    font-size: 0.9em;
-    font-family: monospace;
-}
-
-.code-block {
-    padding: 12px;
-    margin: 0;
-    overflow-x: auto;
-    tab-size: 4;
+    color: var(--code-language);
+    font-size: 0.85em;
+    font-family: 'Fira Code', monospace;
+    font-weight: 500;
 }
 
 .copy-btn {
     background: none;
     border: none;
-    color: #9cdcfe;
+    color: var(--copy-btn);
     cursor: pointer;
-    padding: 4px;
+    padding: 6px;
+    border-radius: 4px;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.85em;
 }
 
 .copy-btn:hover {
-    color: #ce9178;
+    color: var(--copy-btn-hover);
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.copy-btn i {
+    font-size: 0.9em;
+}
+
+.code-block {
+    padding: 15px;
+    margin: 0;
+    overflow-x: auto;
+    color: var(--code-text);
+    font-family: 'Fira Code', monospace;
+    line-height: 1.6;
+    font-size: 0.9em;
+    tab-size: 4;
+}
+
+.code-block::-webkit-scrollbar {
+    height: 6px;
+}
+
+.code-block::-webkit-scrollbar-thumb {
+    background: #4d4d4d;
+    border-radius: 3px;
+}
+
+.code-block::-webkit-scrollbar-thumb:hover {
+    background: #606060;
+}
+
+.typing-indicator {
+    opacity: 0.7;
+    font-style: italic;
+    color: #aaa;
+}
+
+.error-message {
+    color: var(--error-color);
+    background-color: rgba(233, 69, 96, 0.1) !important;
+    border: 1px solid var(--error-color);
 }
 
 @keyframes fadeIn {
@@ -259,15 +297,15 @@ textarea {
         z-index: 100;
         transform: translateX(-100%);
     }
-    
+
     .sidebar.active {
         transform: translateX(0);
     }
-    
+
     .mobile-toggle {
         display: flex;
     }
-    
+
     .chat-history {
         padding-top: 20px;
     }
