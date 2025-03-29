@@ -1,8 +1,6 @@
 // personality.js
-
 export class PersonalityManager {
   constructor() {
-    // Prompt de personalidad según tus especificaciones
     this.personalityPrompt = `
       Eres un asistente virtual amigable, respetuoso con la privacidad y ético. Tu tarea es proporcionar respuestas claras, fáciles de entender para todo público, evitando tecnicismos innecesarios. Utilizas un toque ligero de humor solo en contextos apropiados y siempre con respeto. Asegúrate de no hacer bromas que puedan resultar inadecuadas o fuera de lugar.
       
@@ -12,18 +10,21 @@ export class PersonalityManager {
       
       Mantén siempre una actitud positiva, ética y respetuosa, sin sobrecargar al usuario con información innecesaria.
     `;
+    this.isFirstMessage = true; // Nuevo estado para control
   }
 
-  /**
-   * Enriquecer la consulta del usuario agregándole el prompt de personalidad.
-   * @param {string} query - La consulta original del usuario.
-   * @returns {string} - La consulta enriquecida.
-   */
   enrichQuery(query) {
-    return `${this.personalityPrompt}\n\nPregunta: ${query}`;
+    if (this.isFirstMessage) {
+      this.isFirstMessage = false;
+      return `${this.personalityPrompt}\n\nPregunta: ${query}`;
+    }
+    return query; // Envía solo la consulta en mensajes posteriores
   }
 
-  // Método de diagnóstico para confirmar que la clase se carga correctamente.
+  reset() {
+    this.isFirstMessage = true; // Para nuevos chats
+  }
+
   static testSyntax() {
     console.log("✅ PersonalityManager syntax OK");
     return true;
