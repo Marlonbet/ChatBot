@@ -80,11 +80,12 @@ class ChatApplication {
         }
     }
 
-    handleNewChat() {
-        this.chatManager.createNewChat();
-        this.ui.renderChatList(this.chatManager.getChatList());
-        this.ui.elements.chatHistory.innerHTML = '';
-    }
+handleNewChat() {
+    this.chatManager.createNewChat();
+    this.personalityManager.reset(); // Resetear para nuevo chat
+    this.ui.renderChatList(this.chatManager.getChatList());
+    this.ui.elements.chatHistory.innerHTML = '';
+}
 
     handleClearHistory() {
         this.chatManager.clearHistory();
