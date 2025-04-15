@@ -1,4 +1,4 @@
-// personality.js
+// personalityxxx.js
 export class PersonalityManager {
   constructor() {
     this.personalityPrompt = `
