@@ -370,7 +370,7 @@
             var best = null;
             for (var i = 0; i < memory.length; i++) {
               var s = cosine(emb, memory[i].emb);
-              if (!best || s > best.score) best = { score: s, answer: memory[i].a };
+              if (!best || s > best.score) best = { score: s, entry: memory[i] };
             }
             return best;
           });
@@ -387,22 +387,14 @@
         for (var i = 0; i < intents.length; i++) {
           var it = intents[i];
           var phrases = (it.examples || it.words).slice(0, 4);
-          if (it.answers) {
-            for (var k = 0; k < it.answers.length; k++) {
-              try {
-                var embJ = await extractor('passage: ' + phrases[0] + ' ' + it.answers[k], { pooling: 'mean', normalize: true });
-                memory.push({ q: phrases[0], a: it.answers[k], emb: Array.from(embJ.data) });
-                seeded++;
-              } catch (e) {}
-            }
-          } else {
-            for (var j = 0; j < phrases.length; j++) {
-              try {
-                var embP = await extractor('passage: ' + phrases[j], { pooling: 'mean', normalize: true });
-                memory.push({ q: phrases[j], a: it.answer, emb: Array.from(embP.data) });
-                seeded++;
-              } catch (e) {}
-            }
+          for (var j = 0; j < phrases.length; j++) {
+            try {
+              var embP = await extractor('passage: ' + phrases[j], { pooling: 'mean', normalize: true });
+              var entry = { q: phrases[j], emb: Array.from(embP.data) };
+              if (it.answers) entry.answers = it.answers; else entry.a = it.answer;
+              memory.push(entry);
+              seeded++;
+            } catch (e) {}
           }
         }
         window.Neural.ready = memory.length > 0;
@@ -590,7 +582,12 @@
           return Promise.resolve({ answer: findAnswer(text), source: 'rules' });
         }
         return window.Neural.match(text).then(function (m) {
-          if (m && m.score >= 0.68) return { answer: m.answer, source: 'neural' };
+          if (m && m.score >= 0.68) {
+            var ans = m.entry.answers
+              ? m.entry.answers[Math.floor(Math.random() * m.entry.answers.length)]
+              : m.entry.a;
+            return { answer: ans, source: 'neural' };
+          }
           return { answer: findAnswer(text), source: 'rules' };
         }).catch(function () {
           return { answer: findAnswer(text), source: 'rules' };
