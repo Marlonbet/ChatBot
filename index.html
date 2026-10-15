@@ -1,36 +1,479 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="es">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Chat Avanzado con Gemini</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="stylesheet" href="main.css">
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="color-scheme" content="light dark" />
+  <link rel="icon" href="data:," />
+  <title>Chatbot sin API</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap');
+
+    :root {
+      color-scheme: light dark;
+      --bg: #eef2ee;
+      --panel: #fbfcfa;
+      --panel-2: #f2f5f1;
+      --ink: #17201a;
+      --muted: #657067;
+      --line: #d5ddd6;
+      --accent: #147a4f;
+      --accent-strong: #0e593a;
+      --accent-soft: #dcefe4;
+      --user: #192b21;
+      --user-ink: #f8fbf8;
+      --shadow: 0 20px 60px rgba(28, 45, 34, .13);
+      --danger: #9f3a32;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #101512;
+        --panel: #171e19;
+        --panel-2: #1d261f;
+        --ink: #edf4ee;
+        --muted: #a5b1a8;
+        --line: #344238;
+        --accent: #56c28d;
+        --accent-strong: #8bdcaf;
+        --accent-soft: #203a2b;
+        --user: #d8eee0;
+        --user-ink: #112017;
+        --shadow: 0 22px 70px rgba(0, 0, 0, .35);
+        --danger: #ef938b;
+      }
+    }
+    * { box-sizing: border-box; }
+    html, body { min-height: 100%; }
+    body {
+      margin: 0;
+      min-height: 100svh;
+      background:
+        linear-gradient(rgba(20,122,79,.045) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(20,122,79,.045) 1px, transparent 1px),
+        var(--bg);
+      background-size: 28px 28px;
+      color: var(--ink);
+      font-family: "IBM Plex Sans", sans-serif;
+      padding: clamp(10px, 3vw, 32px);
+    }
+    button, input { font: inherit; }
+    button { color: inherit; }
+    .app {
+      width: min(980px, 100%);
+      height: min(780px, calc(100svh - clamp(20px, 6vw, 64px)));
+      min-height: 560px;
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: 240px minmax(0, 1fr);
+      overflow: hidden;
+      background: var(--panel);
+      border: 1px solid var(--line);
+      box-shadow: var(--shadow);
+      border-radius: 18px 18px 9px 9px;
+    }
+    .rail {
+      display: flex;
+      flex-direction: column;
+      gap: 22px;
+      padding: 24px 18px;
+      background: var(--panel-2);
+      border-right: 1px solid var(--line);
+    }
+    .status {
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      font-family: "IBM Plex Mono", monospace;
+      font-size: 12px;
+      color: var(--muted);
+    }
+    .pulse {
+      width: 9px; height: 9px; border-radius: 50%;
+      background: var(--accent);
+      box-shadow: 0 0 0 4px var(--accent-soft);
+      flex: 0 0 auto;
+    }
+    .rail h2 {
+      font-size: 22px;
+      line-height: 1.12;
+      letter-spacing: -.02em;
+      margin: 0;
+    }
+    .rail p {
+      margin: 8px 0 0;
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1.5;
+    }
+    .examples { display: grid; gap: 8px; }
+    .examples-label {
+      color: var(--muted);
+      font-family: "IBM Plex Mono", monospace;
+      font-size: 11px;
+      margin-bottom: 2px;
+    }
+    .suggestion {
+      width: 100%;
+      padding: 10px 11px;
+      text-align: left;
+      background: transparent;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 13px;
+      line-height: 1.25;
+      transition: background .16s, border-color .16s;
+    }
+    .suggestion:hover, .suggestion:focus-visible {
+      background: var(--accent-soft);
+      border-color: var(--accent);
+      outline: none;
+    }
+    .rail-note {
+      margin-top: auto;
+      padding-top: 16px;
+      border-top: 1px solid var(--line);
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.45;
+    }
+    .chat { min-width: 0; display: flex; flex-direction: column; }
+    .chat-head {
+      min-height: 70px;
+      padding: 16px 22px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      border-bottom: 1px solid var(--line);
+    }
+    .chat-head h1 {
+      margin: 0;
+      font-size: 18px;
+      letter-spacing: -.01em;
+    }
+    .chat-head span { display: block; margin-top: 3px; color: var(--muted); font-size: 12px; }
+    .reset {
+      border: 0;
+      background: transparent;
+      color: var(--muted);
+      padding: 8px;
+      cursor: pointer;
+      font-size: 13px;
+      text-decoration: underline;
+      text-underline-offset: 3px;
+    }
+    .reset:hover, .reset:focus-visible { color: var(--ink); outline: none; }
+    .messages {
+      flex: 1;
+      overflow-y: auto;
+      padding: 26px clamp(18px, 4vw, 38px);
+      scroll-behavior: smooth;
+    }
+    .message {
+      display: flex;
+      align-items: flex-end;
+      gap: 10px;
+      margin-bottom: 18px;
+      animation: appear .2s ease-out;
+    }
+    @keyframes appear { from { opacity: 0; transform: translateY(4px); } }
+    .message.user { justify-content: flex-end; }
+    .avatar {
+      width: 28px; height: 28px;
+      display: grid; place-items: center;
+      flex: 0 0 auto;
+      border-radius: 7px;
+      background: var(--accent-soft);
+      color: var(--accent-strong);
+      font-family: "IBM Plex Mono", monospace;
+      font-size: 12px;
+      font-weight: 500;
+    }
+    .bubble {
+      max-width: min(560px, 83%);
+      padding: 12px 15px;
+      border-radius: 4px 15px 15px 15px;
+      background: var(--panel-2);
+      border: 1px solid var(--line);
+      line-height: 1.5;
+      font-size: 15px;
+      white-space: pre-wrap;
+      overflow-wrap: anywhere;
+    }
+    .user .bubble {
+      background: var(--user);
+      color: var(--user-ink);
+      border-color: transparent;
+      border-radius: 15px 4px 15px 15px;
+    }
+    .meta {
+      margin-top: 6px;
+      font-family: "IBM Plex Mono", monospace;
+      font-size: 10px;
+      color: var(--muted);
+    }
+    .user .meta { color: color-mix(in srgb, var(--user-ink) 68%, transparent); }
+    .typing .bubble { color: var(--muted); }
+    .dots { letter-spacing: 3px; animation: blink 1s steps(2, end) infinite; }
+    @keyframes blink { 50% { opacity: .35; } }
+    .composer {
+      padding: 14px 18px max(14px, env(safe-area-inset-bottom));
+      border-top: 1px solid var(--line);
+      background: var(--panel);
+    }
+    .input-row {
+      display: flex;
+      gap: 10px;
+      padding: 6px 6px 6px 14px;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: var(--panel-2);
+    }
+    .input-row:focus-within { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+    input {
+      min-width: 0;
+      flex: 1;
+      border: 0;
+      outline: 0;
+      background: transparent;
+      color: var(--ink);
+      font-size: 16px;
+    }
+    input::placeholder { color: var(--muted); }
+    .send {
+      width: 40px; height: 40px;
+      display: grid; place-items: center;
+      border: 0;
+      border-radius: 8px;
+      background: var(--accent);
+      color: #fff;
+      cursor: pointer;
+    }
+    .send:hover { background: var(--accent-strong); }
+    .send:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+    .send:disabled { opacity: .4; cursor: default; }
+    .send svg { width: 18px; height: 18px; }
+    .hint { margin: 7px 3px 0; color: var(--muted); font-size: 11px; }
+    code { font-family: "IBM Plex Mono", monospace; font-size: .9em; }
+
+    @media (max-width: 720px) {
+      body { padding: 0; background: var(--panel); }
+      .app {
+        height: 100svh;
+        min-height: 0;
+        border: 0;
+        border-radius: 0;
+        grid-template-columns: 1fr;
+      }
+      .rail { display: none; }
+      .chat-head { min-height: 62px; padding: 12px 16px; }
+      .messages { padding: 20px 14px; }
+      .bubble { max-width: 88%; }
+      .composer { padding: 11px 12px max(11px, env(safe-area-inset-bottom)); }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { animation: none !important; scroll-behavior: auto !important; }
+    }
+  </style>
 </head>
 <body>
-    <div class="sidebar">
-        <div class="sidebar-header">
-            <h2>Historial de Chats</h2>
-            <button id="closeSidebarBtn" class="close-btn"><i class="fas fa-times"></i></button>
-        </div>
-        <div id="chatList" class="chat-list"></div>
-        <div class="sidebar-footer">
-            <button id="newChatBtn" class="btn-primary"><i class="fas fa-plus"></i> Nuevo Chat</button>
-            <button id="clearHistoryBtn" class="btn-danger"><i class="fas fa-trash"></i> Limpiar Historial</button>
-        </div>
-    </div>
-    
-    <div class="main-container">
-        <button id="toggleSidebarBtn" class="mobile-toggle"><i class="fas fa-bars"></i></button>
-        
-        <div id="chatHistory" class="chat-history"></div>
-        
-        <div class="input-container">
-            <textarea id="userInput" placeholder="Escribe tu mensaje..." rows="3"></textarea>
-            <button id="sendButton" class="btn-send"><i class="fas fa-paper-plane"></i></button>
-        </div>
-    </div>
+  <main class="app" aria-label="Chatbot local sin API">
+    <aside class="rail">
+      <div class="status"><span class="pulse" aria-hidden="true"></span>Motor local activo</div>
+      <div>
+        <h2>Todo ocurre en tu navegador.</h2>
+        <p>Un chatbot de reglas, sin claves, servidores ni llamadas externas.</p>
+      </div>
+      <div class="examples" aria-label="Preguntas de ejemplo">
+        <div class="examples-label">PRUEBA CON</div>
+        <button class="suggestion" data-prompt="¿Qué puedes hacer?">¿Qué puedes hacer?</button>
+        <button class="suggestion" data-prompt="Explícame qué es JavaScript">¿Qué es JavaScript?</button>
+        <button class="suggestion" data-prompt="Cuéntame un chiste">Cuéntame un chiste</button>
+        <button class="suggestion" data-prompt="¿Cómo funcionas sin API?">¿Cómo funcionas sin API?</button>
+      </div>
+      <div class="rail-note">Las respuestas aprendidas con <code>/enseñar</code> duran solo durante esta sesión.</div>
+    </aside>
 
-    <script type="module" src="main.js"></script>
+    <section class="chat">
+      <header class="chat-head">
+        <div><h1>Conversemos</h1><span>Respuestas instantáneas · sin conexión</span></div>
+        <button class="reset" type="button" id="reset">Reiniciar</button>
+      </header>
+
+      <div class="messages" id="messages" role="log" aria-live="polite" aria-label="Conversación"></div>
+
+      <form class="composer" id="form">
+        <div class="input-row">
+          <input id="input" type="text" maxlength="280" autocomplete="off" placeholder="Escribe un mensaje…" aria-label="Mensaje" />
+          <button class="send" id="send" type="submit" aria-label="Enviar mensaje" disabled>
+            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="m5 12 14-7-4.5 14-2.7-5.2L5 12Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="m11.8 13.8 3.4-3.4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+          </button>
+        </div>
+        <p class="hint">Enter para enviar · prueba <code>/ayuda</code></p>
+      </form>
+    </section>
+  </main>
+
+  <script>
+    (function () {
+      'use strict';
+      var messages = document.getElementById('messages');
+      var form = document.getElementById('form');
+      var input = document.getElementById('input');
+      var send = document.getElementById('send');
+      var reset = document.getElementById('reset');
+      var learned = [];
+      var turn = 0;
+
+      var intents = [
+        { words: ['hola','buenas','saludos','hey'], answer: '¡Hola! Soy un bot local basado en reglas. Puedo conversar sobre temas básicos, explicar cómo estoy hecho y aprender respuestas durante esta sesión.' },
+        { words: ['que puedes hacer','qué puedes hacer','ayuda','opciones','funciones'], answer: 'Puedo reconocer saludos, preguntas frecuentes, conceptos web, la hora, chistes y despedidas. También puedes enseñarme algo temporalmente con:\n/enseñar pregunta | respuesta' },
+        { words: ['como funcionas','cómo funcionas','sin api','puro codigo','puro código','reglas'], answer: 'Trabajo con JavaScript dentro de esta página. Normalizo tu texto, busco palabras clave, puntúo la intención más cercana y elijo una respuesta preescrita. No envío mensajes a ningún servidor.' },
+        { words: ['javascript','js'], answer: 'JavaScript es el lenguaje que da comportamiento a una página web. Aquí recibe tu mensaje, compara palabras clave y construye la respuesta directamente en el navegador.' },
+        { words: ['html'], answer: 'HTML define la estructura de una página: títulos, botones, campos y contenido. En este chatbot, HTML forma la interfaz de conversación.' },
+        { words: ['css','estilos'], answer: 'CSS controla la presentación: color, tipografía, espaciado y adaptación a móvil. Es la capa visual de este chatbot.' },
+        { words: ['inteligencia artificial','ia','eres inteligente'], answer: 'No soy un modelo de IA generativa. Soy un motor conversacional determinista: respondo usando reglas y conocimiento escrito en el código. Eso me hace ligero y privado, pero limita lo que puedo comprender.' },
+        { words: ['privacidad','datos','servidor','internet'], answer: 'Esta conversación se procesa en la memoria de la pestaña. No hago peticiones de red para responder y, al recargar, el historial desaparece.' },
+        { words: ['chiste','hazme reir','hazme reír'], answers: ['¿Por qué el programador confundió Halloween con Navidad? Porque OCT 31 = DEC 25.', 'Había una vez un código tan limpio… que nadie se atrevía a tocarlo.', '—¿Cuál es el café favorito de un programador?\n—El Java.'] },
+        { words: ['gracias','te agradezco'], answer: '¡Con gusto! Si quieres probar el motor, pregúntame cómo funciono o enséñame una respuesta nueva.' },
+        { words: ['adios','adiós','hasta luego','nos vemos'], answer: '¡Hasta luego! La conversación se quedará aquí mientras mantengas abierta esta página.' }
+      ];
+
+      function normalize(text) {
+        return text.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9áéíóúñü\s]/gi, ' ').replace(/\s+/g, ' ').trim();
+      }
+
+      function stamp() {
+        return new Date().toLocaleTimeString('es', { hour: '2-digit', minute: '2-digit' });
+      }
+
+      function addMessage(text, who) {
+        var row = document.createElement('div');
+        row.className = 'message ' + who;
+        if (who === 'bot') {
+          var avatar = document.createElement('div');
+          avatar.className = 'avatar';
+          avatar.setAttribute('aria-hidden', 'true');
+          avatar.textContent = '>_';
+          row.appendChild(avatar);
+        }
+        var bubble = document.createElement('div');
+        bubble.className = 'bubble';
+        var body = document.createElement('div');
+        body.textContent = text;
+        var meta = document.createElement('div');
+        meta.className = 'meta';
+        meta.textContent = stamp();
+        bubble.appendChild(body);
+        bubble.appendChild(meta);
+        row.appendChild(bubble);
+        messages.appendChild(row);
+        messages.scrollTop = messages.scrollHeight;
+        return row;
+      }
+
+      function tokenize(text) {
+        return normalize(text).split(' ').filter(function (word) { return word.length > 1; });
+      }
+
+      function similarity(a, b) {
+        var aa = tokenize(a), bb = tokenize(b);
+        if (!aa.length || !bb.length) return 0;
+        var hits = aa.filter(function (w) { return bb.indexOf(w) !== -1; }).length;
+        return hits / Math.max(aa.length, bb.length);
+      }
+
+      function findAnswer(text) {
+        var n = normalize(text);
+
+        if (n.indexOf('/ensenar ') === 0) {
+          var lesson = text.slice(text.indexOf(' ') + 1).split('|');
+          if (lesson.length < 2 || !lesson[0].trim() || !lesson.slice(1).join('|').trim()) {
+            return 'Usa este formato: /enseñar pregunta | respuesta';
+          }
+          var question = lesson.shift().trim();
+          var answer = lesson.join('|').trim();
+          learned.push({ question: question, answer: answer });
+          return 'Entendido. Durante esta sesión responderé “' + answer + '” cuando me preguntes algo parecido a “' + question + '”.';
+        }
+        if (n === '/ayuda') {
+          return 'Comandos disponibles:\n/ayuda — muestra esta guía\n/enseñar pregunta | respuesta — añade una respuesta temporal\n\nTambién puedes conversar normalmente.';
+        }
+        if (/\b(hora|que hora|qué hora)\b/.test(n)) {
+          return 'En tu dispositivo son las ' + new Date().toLocaleTimeString('es', { hour: '2-digit', minute: '2-digit' }) + '.';
+        }
+        if (/\b(fecha|que dia|qué día|hoy)\b/.test(n)) {
+          return 'Hoy es ' + new Date().toLocaleDateString('es', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }) + ', según tu dispositivo.';
+        }
+
+        var bestLearned = { score: 0, answer: '' };
+        learned.forEach(function (item) {
+          var score = similarity(text, item.question);
+          if (score > bestLearned.score) bestLearned = { score: score, answer: item.answer };
+        });
+        if (bestLearned.score >= .5) return bestLearned.answer;
+
+        var best = { score: 0, intent: null };
+        intents.forEach(function (intent) {
+          var score = 0;
+          intent.words.forEach(function (phrase) {
+            var p = normalize(phrase);
+            if (n.indexOf(p) !== -1) score = Math.max(score, p.split(' ').length + 1);
+            else score = Math.max(score, similarity(n, p));
+          });
+          if (score > best.score) best = { score: score, intent: intent };
+        });
+        if (best.intent && best.score >= .55) {
+          if (best.intent.answers) return best.intent.answers[turn % best.intent.answers.length];
+          return best.intent.answer;
+        }
+
+        var subject = tokenize(text).filter(function (w) { return w.length > 4; }).slice(0, 2).join(' y ');
+        return subject
+          ? 'Todavía no tengo una regla sobre ' + subject + '. Puedes enseñarme una respuesta con:\n/enseñar tu pregunta | la respuesta que debo dar'
+          : 'No entendí del todo. Prueba con “¿Qué puedes hacer?” o escribe /ayuda.';
+      }
+
+      function reply(text) {
+        var typing = document.createElement('div');
+        typing.className = 'message bot typing';
+        typing.innerHTML = '<div class="avatar" aria-hidden="true">&gt;_</div><div class="bubble"><span class="dots">•••</span></div>';
+        messages.appendChild(typing);
+        messages.scrollTop = messages.scrollHeight;
+        window.setTimeout(function () {
+          typing.remove();
+          turn += 1;
+          addMessage(findAnswer(text), 'bot');
+        }, 420);
+      }
+
+      function submitText(text) {
+        var clean = text.trim();
+        if (!clean) return;
+        addMessage(clean, 'user');
+        input.value = '';
+        send.disabled = true;
+        reply(clean);
+      }
+
+      function welcome() {
+        messages.innerHTML = '';
+        addMessage('Hola. Estoy funcionando completamente en tu navegador. Pregúntame algo o prueba uno de los ejemplos.', 'bot');
+      }
+
+      form.addEventListener('submit', function (event) {
+        event.preventDefault();
+        submitText(input.value);
+      });
+      input.addEventListener('input', function () { send.disabled = !input.value.trim(); });
+      reset.addEventListener('click', function () { learned = []; turn = 0; welcome(); input.focus(); });
+      document.querySelectorAll('[data-prompt]').forEach(function (button) {
+        button.addEventListener('click', function () { submitText(button.getAttribute('data-prompt')); });
+      });
+
+      welcome();
+    }());
+  </script>
 </body>
 </html>
