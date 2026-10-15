@@ -285,7 +285,7 @@
       <div class="status"><span class="pulse" aria-hidden="true"></span><span id="engineStatus">Motor local activo</span></div>
       <div>
         <h2>Todo ocurre en tu navegador.</h2>
-        <p>Un chatbot de reglas, sin claves, servidores ni llamadas externas.</p>
+        <p>Un chatbot con red neuronal local, sin claves ni API. Guarda tus conversaciones para mejorar.</p>
       </div>
       <div class="examples" aria-label="Preguntas de ejemplo">
         <div class="examples-label">PRUEBA CON</div>
@@ -299,7 +299,7 @@
 
     <section class="chat">
       <header class="chat-head">
-        <div><h1>Conversemos</h1><span>Respuestas instantáneas · sin conexión</span></div>
+        <div><h1>Conversemos</h1><span>Respuestas en tu navegador · aprende de tus chats</span></div>
         <button class="reset" type="button" id="reset">Reiniciar</button>
       </header>
 
@@ -458,12 +458,12 @@
       var intents = [
         { words: ['hola','buenas','saludos','hey'], answer: '¡Hola! Soy un bot local basado en reglas. Puedo conversar sobre temas básicos, explicar cómo estoy hecho y aprender respuestas durante esta sesión.' },
         { words: ['que puedes hacer','qué puedes hacer','ayuda','opciones','funciones'], answer: 'Puedo reconocer saludos, preguntas frecuentes, conceptos web, la hora, chistes y despedidas. También puedes enseñarme algo temporalmente con:\n/enseñar pregunta | respuesta' },
-        { words: ['como funcionas','cómo funcionas','sin api','puro codigo','puro código','reglas','red neuronal','neuronal'], answer: 'Trabajo con JavaScript dentro de esta página. Una red neuronal convierte tu mensaje en un vector semántico y busca en mi memoria la respuesta más parecida por significado; si no estoy seguro, uso reglas de respaldo. No envío tus mensajes a ningún servidor para responder.' },
+        { words: ['como funcionas','cómo funcionas','sin api','puro codigo','puro código','reglas','red neuronal','neuronal'], answer: 'Trabajo con JavaScript dentro de esta página. Una red neuronal convierte tu mensaje en un vector semántico y busca en mi memoria la respuesta más parecida por significado; si no estoy seguro, uso reglas de respaldo. Las respuestas se generan aquí, sin API; cada conversación se guarda en Firebase para mejorar el bot.' },
         { words: ['javascript','js'], answer: 'JavaScript es el lenguaje que da comportamiento a una página web. Aquí recibe tu mensaje, compara palabras clave y construye la respuesta directamente en el navegador.' },
         { words: ['html'], answer: 'HTML define la estructura de una página: títulos, botones, campos y contenido. En este chatbot, HTML forma la interfaz de conversación.' },
         { words: ['css','estilos'], answer: 'CSS controla la presentación: color, tipografía, espaciado y adaptación a móvil. Es la capa visual de este chatbot.' },
         { words: ['inteligencia artificial','ia','eres inteligente'], answer: 'Uso una red neuronal real: un modelo de embeddings multilingüe que corre en tu navegador. Entiende el significado de tus mensajes y busca en su memoria la mejor respuesta. Aprendo de lo que me enseñas con /enseñar y de la revisión semanal de conversaciones.' },
-        { words: ['privacidad','datos','servidor','internet'], answer: 'Esta conversación se procesa en la memoria de la pestaña. No hago peticiones de red para responder y, al recargar, el historial desaparece.' },
+        { words: ['privacidad','datos','servidor','internet'], answer: 'Las respuestas se generan en tu navegador, sin API. Cada conversación se guarda de forma anónima (por sesión, sin cuentas) en Firebase para que el bot mejore con el tiempo.' },
         { words: ['chiste','hazme reir','hazme reír'], answers: ['¿Por qué el programador confundió Halloween con Navidad? Porque OCT 31 = DEC 25.', 'Había una vez un código tan limpio… que nadie se atrevía a tocarlo.', '—¿Cuál es el café favorito de un programador?\n—El Java.'] },
         { words: ['gracias','te agradezco'], answer: '¡Con gusto! Si quieres probar el motor, pregúntame cómo funciono o enséñame una respuesta nueva.' },
         { words: ['adios','adiós','hasta luego','nos vemos'], answer: '¡Hasta luego! La conversación se quedará aquí mientras mantengas abierta esta página.' }
@@ -516,8 +516,9 @@
 
       function findAnswer(text) {
         var n = normalize(text);
+        var rawCmd = text.trim().toLowerCase();
 
-        if (n.indexOf('/ensenar ') === 0) {
+        if (rawCmd.indexOf('/enseñar ') === 0 || rawCmd.indexOf('/ensenar ') === 0) {
           var lesson = text.slice(text.indexOf(' ') + 1).split('|');
           if (lesson.length < 2 || !lesson[0].trim() || !lesson.slice(1).join('|').trim()) {
             return 'Usa este formato: /enseñar pregunta | respuesta';
@@ -528,7 +529,7 @@
           if (window.Neural && window.Neural.addMemory) window.Neural.addMemory(question, answer);
           return 'Entendido. Durante esta sesión responderé “' + answer + '” cuando me preguntes algo parecido a “' + question + '”.';
         }
-        if (n === '/ayuda') {
+        if (rawCmd === '/ayuda') {
           return 'Comandos disponibles:\n/ayuda — muestra esta guía\n/enseñar pregunta | respuesta — añade una respuesta temporal\n\nTambién puedes conversar normalmente.';
         }
         if (/\b(hora|que hora|qué hora)\b/.test(n)) {
@@ -571,7 +572,8 @@
       // siempre son deterministas.
       function findAnswerSmart(text) {
         var n = normalize(text);
-        var deterministic = n.indexOf('/ensenar ') === 0 || n === '/ayuda' ||
+        var rawCmd = text.trim().toLowerCase();
+        var deterministic = rawCmd.indexOf('/enseñar ') === 0 || rawCmd.indexOf('/ensenar ') === 0 || rawCmd === '/ayuda' ||
           /\b(hora|que hora|qué hora)\b/.test(n) || /\b(fecha|que dia|qué día|hoy)\b/.test(n);
         if (deterministic || !(window.Neural && window.Neural.ready)) {
           return Promise.resolve({ answer: findAnswer(text), source: 'rules' });
