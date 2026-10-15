@@ -333,6 +333,8 @@
       }
 
       var memory = [];
+      // ?fresh=1 → no restaura la memoria aprendida (útil para probar solo con el código)
+      var freshMode = /[?&]fresh=1/.test(location.search);
 
       function persist() {
         try {
@@ -379,12 +381,12 @@
         setStatus('Cargando red neuronal…');
         var extractor = await pipeline('feature-extraction', 'Xenova/multilingual-e5-small', { quantized: true });
         window.Neural.extractor = extractor;
-        restore();
+        if (!freshMode) restore();
         var intents = window.__intents || [];
         var seeded = 0;
         for (var i = 0; i < intents.length; i++) {
           var it = intents[i];
-          var phrases = (it.examples || it.words).slice(0, 3);
+          var phrases = (it.examples || it.words).slice(0, 4);
           if (it.answers) {
             for (var k = 0; k < it.answers.length; k++) {
               try {
