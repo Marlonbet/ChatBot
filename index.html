@@ -384,7 +384,7 @@
         var seeded = 0;
         for (var i = 0; i < intents.length; i++) {
           var it = intents[i];
-          var phrases = it.words.slice(0, 3);
+          var phrases = (it.examples || it.words).slice(0, 3);
           if (it.answers) {
             for (var k = 0; k < it.answers.length; k++) {
               try {
@@ -456,17 +456,17 @@
       }
 
       var intents = [
-        { words: ['hola','buenas','saludos','hey'], answer: '¡Hola! Soy un bot local basado en reglas. Puedo conversar sobre temas básicos, explicar cómo estoy hecho y aprender respuestas durante esta sesión.' },
-        { words: ['que puedes hacer','qué puedes hacer','ayuda','opciones','funciones'], answer: 'Puedo reconocer saludos, preguntas frecuentes, conceptos web, la hora, chistes y despedidas. También puedes enseñarme algo temporalmente con:\n/enseñar pregunta | respuesta' },
-        { words: ['como funcionas','cómo funcionas','sin api','puro codigo','puro código','reglas','red neuronal','neuronal'], answer: 'Trabajo con JavaScript dentro de esta página. Una red neuronal convierte tu mensaje en un vector semántico y busca en mi memoria la respuesta más parecida por significado; si no estoy seguro, uso reglas de respaldo. Las respuestas se generan aquí, sin API; cada conversación se guarda en Firebase para mejorar el bot.' },
-        { words: ['javascript','js'], answer: 'JavaScript es el lenguaje que da comportamiento a una página web. Aquí recibe tu mensaje, compara palabras clave y construye la respuesta directamente en el navegador.' },
-        { words: ['html'], answer: 'HTML define la estructura de una página: títulos, botones, campos y contenido. En este chatbot, HTML forma la interfaz de conversación.' },
-        { words: ['css','estilos'], answer: 'CSS controla la presentación: color, tipografía, espaciado y adaptación a móvil. Es la capa visual de este chatbot.' },
-        { words: ['inteligencia artificial','ia','eres inteligente'], answer: 'Uso una red neuronal real: un modelo de embeddings multilingüe que corre en tu navegador. Entiende el significado de tus mensajes y busca en su memoria la mejor respuesta. Aprendo de lo que me enseñas con /enseñar y de la revisión semanal de conversaciones.' },
-        { words: ['privacidad','datos','servidor','internet'], answer: 'Las respuestas se generan en tu navegador, sin API. Cada conversación se guarda de forma anónima (por sesión, sin cuentas) en Firebase para que el bot mejore con el tiempo.' },
-        { words: ['chiste','hazme reir','hazme reír'], answers: ['¿Por qué el programador confundió Halloween con Navidad? Porque OCT 31 = DEC 25.', 'Había una vez un código tan limpio… que nadie se atrevía a tocarlo.', '—¿Cuál es el café favorito de un programador?\n—El Java.'] },
-        { words: ['gracias','te agradezco'], answer: '¡Con gusto! Si quieres probar el motor, pregúntame cómo funciono o enséñame una respuesta nueva.' },
-        { words: ['adios','adiós','hasta luego','nos vemos'], answer: '¡Hasta luego! La conversación se quedará aquí mientras mantengas abierta esta página.' }
+        { words: ['hola','buenas','saludos','hey'], examples: ['hola', 'buenas tardes', 'saludos, ¿cómo estás?'], answer: '¡Hola! Soy un bot local basado en reglas. Puedo conversar sobre temas básicos, explicar cómo estoy hecho y aprender respuestas durante esta sesión.' },
+        { words: ['que puedes hacer','qué puedes hacer','ayuda','opciones','funciones'], examples: ['¿qué puedes hacer?', '¿para qué sirves?', 'muéstrame la ayuda'], answer: 'Puedo reconocer saludos, preguntas frecuentes, conceptos web, la hora, chistes y despedidas. También puedes enseñarme algo temporalmente con:\n/enseñar pregunta | respuesta' },
+        { words: ['como funcionas','cómo funcionas','sin api','puro codigo','puro código','reglas','red neuronal','neuronal'], examples: ['¿cómo funcionas?', '¿cómo funcionas sin API?', 'explícame cómo estás hecho'], answer: 'Trabajo con JavaScript dentro de esta página. Una red neuronal convierte tu mensaje en un vector semántico y busca en mi memoria la respuesta más parecida por significado; si no estoy seguro, uso reglas de respaldo. Las respuestas se generan aquí, sin API; cada conversación se guarda en Firebase para mejorar el bot.' },
+        { words: ['javascript','js'], examples: ['¿qué es JavaScript?', 'explícame JavaScript', 'para qué sirve js'], answer: 'JavaScript es el lenguaje que da comportamiento a una página web. Aquí recibe tu mensaje, compara palabras clave y construye la respuesta directamente en el navegador.' },
+        { words: ['html'], examples: ['¿qué es HTML?', 'explícame qué es html', 'para qué sirve html'], answer: 'HTML define la estructura de una página: títulos, botones, campos y contenido. En este chatbot, HTML forma la interfaz de conversación.' },
+        { words: ['css','estilos'], examples: ['¿qué es CSS?', 'para qué sirven los estilos', 'explícame css'], answer: 'CSS controla la presentación: color, tipografía, espaciado y adaptación a móvil. Es la capa visual de este chatbot.' },
+        { words: ['inteligencia artificial','ia','eres inteligente'], examples: ['¿eres inteligente?', '¿qué es la inteligencia artificial?', '¿eres una IA?'], answer: 'Uso una red neuronal real: un modelo de embeddings multilingüe que corre en tu navegador. Entiende el significado de tus mensajes y busca en su memoria la mejor respuesta. Aprendo de lo que me enseñas con /enseñar y de la revisión semanal de conversaciones.' },
+        { words: ['privacidad','datos','servidor','internet'], examples: ['¿qué hacen con mis datos?', '¿esto es privado?', '¿mis mensajes están seguros?'], answer: 'Las respuestas se generan en tu navegador, sin API. Cada conversación se guarda de forma anónima (por sesión, sin cuentas) en Firebase para que el bot mejore con el tiempo.' },
+        { words: ['chiste','hazme reir','hazme reír'], examples: ['cuéntame un chiste', 'dime algo gracioso', 'hazme reír'], answers: ['¿Por qué el programador confundió Halloween con Navidad? Porque OCT 31 = DEC 25.', 'Había una vez un código tan limpio… que nadie se atrevía a tocarlo.', '—¿Cuál es el café favorito de un programador?\n—El Java.'] },
+        { words: ['gracias','te agradezco'], examples: ['gracias', 'muchas gracias', 'te lo agradezco'], answer: '¡Con gusto! Si quieres probar el motor, pregúntame cómo funciono o enséñame una respuesta nueva.' },
+        { words: ['adios','adiós','hasta luego','nos vemos'], examples: ['adiós', 'hasta luego', 'nos vemos pronto'], answer: '¡Hasta luego! La conversación se quedará aquí mientras mantengas abierta esta página.' }
       ];
       window.__intents = intents;
 
@@ -579,7 +579,7 @@
           return Promise.resolve({ answer: findAnswer(text), source: 'rules' });
         }
         return window.Neural.match(text).then(function (m) {
-          if (m && m.score >= 0.62) return { answer: m.answer, source: 'neural' };
+          if (m && m.score >= 0.68) return { answer: m.answer, source: 'neural' };
           return { answer: findAnswer(text), source: 'rules' };
         }).catch(function () {
           return { answer: findAnswer(text), source: 'rules' };
@@ -611,7 +611,10 @@
         reply(clean);
       }
 
+      var welcomed = false;
       function welcome() {
+        if (welcomed) return;
+        welcomed = true;
         messages.innerHTML = '';
         addMessage('Hola. Estoy funcionando completamente en tu navegador. Pregúntame algo o prueba uno de los ejemplos.', 'bot');
       }
@@ -621,7 +624,7 @@
         submitText(input.value);
       });
       input.addEventListener('input', function () { send.disabled = !input.value.trim(); });
-      reset.addEventListener('click', function () { learned = []; turn = 0; welcome(); input.focus(); });
+      reset.addEventListener('click', function () { learned = []; turn = 0; welcomed = false; welcome(); input.focus(); });
       document.querySelectorAll('[data-prompt]').forEach(function (button) {
         button.addEventListener('click', function () { submitText(button.getAttribute('data-prompt')); });
       });
