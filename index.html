@@ -294,7 +294,7 @@
         <button class="suggestion" data-prompt="Cuéntame un chiste">Cuéntame un chiste</button>
         <button class="suggestion" data-prompt="¿Cómo funcionas sin API?">¿Cómo funcionas sin API?</button>
       </div>
-      <div class="rail-note">La primera vez, el navegador descarga la red neuronal (~120&nbsp;MB) y la guarda en caché. Lo que me enseñes con <code>/enseñar</code> se guarda en la memoria de este navegador.</div>
+      <div class="rail-note">La primera vez, el navegador descarga la red neuronal (~550&nbsp;MB) y la guarda en caché. Lo que me enseñes con <code>/enseñar</code> se guarda en la memoria de este navegador.</div>
     </aside>
 
     <section class="chat">
@@ -379,7 +379,7 @@
 
       try {
         setStatus('Cargando red neuronal…');
-        var extractor = await pipeline('feature-extraction', 'Xenova/multilingual-e5-small', { quantized: true });
+        var extractor = await pipeline('feature-extraction', 'Xenova/multilingual-e5-large', { quantized: true });
         window.Neural.extractor = extractor;
         if (!freshMode) restore();
         var intents = window.__intents || [];
