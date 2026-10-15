@@ -282,7 +282,7 @@
 <body>
   <main class="app" aria-label="Chatbot local sin API">
     <aside class="rail">
-      <div class="status"><span class="pulse" aria-hidden="true"></span>Motor local activo</div>
+      <div class="status"><span class="pulse" aria-hidden="true"></span><span id="engineStatus">Motor local activo</span></div>
       <div>
         <h2>Todo ocurre en tu navegador.</h2>
         <p>Un chatbot de reglas, sin claves, servidores ni llamadas externas.</p>
@@ -294,7 +294,7 @@
         <button class="suggestion" data-prompt="Cuéntame un chiste">Cuéntame un chiste</button>
         <button class="suggestion" data-prompt="¿Cómo funcionas sin API?">¿Cómo funcionas sin API?</button>
       </div>
-      <div class="rail-note">Las respuestas aprendidas con <code>/enseñar</code> duran solo durante esta sesión.</div>
+      <div class="rail-note">La primera vez, el navegador descarga la red neuronal (~120&nbsp;MB) y la guarda en caché. Lo que me enseñes con <code>/enseñar</code> se guarda en la memoria de este navegador.</div>
     </aside>
 
     <section class="chat">
@@ -317,6 +317,99 @@
     </section>
   </main>
 
+  <script type="module">
+    import { pipeline } from 'https://cdn.jsdelivr.net/npm/@xenova/transformers@2.17.2';
+
+    // Red neuronal real (embeddings multilingües) corriendo 100% en el navegador.
+    // Convierte cada mensaje en un vector semántico y busca en la memoria
+    // la respuesta más parecida por significado, no por palabras clave.
+    (async function () {
+      var statusEl = document.getElementById('engineStatus');
+      function setStatus(t) { if (statusEl) statusEl.textContent = t; }
+      function cosine(a, b) {
+        var dot = 0, na = 0, nb = 0;
+        for (var i = 0; i < a.length; i++) { dot += a[i] * b[i]; na += a[i] * a[i]; nb += b[i] * b[i]; }
+        return dot / ((Math.sqrt(na) * Math.sqrt(nb)) || 1);
+      }
+
+      var memory = [];
+
+      function persist() {
+        try {
+          var taught = memory.filter(function (m) { return m.taught; }).slice(-200);
+          localStorage.setItem('chatbot_neural_memory', JSON.stringify(taught));
+        } catch (e) {}
+      }
+      function restore() {
+        try {
+          var raw = localStorage.getItem('chatbot_neural_memory');
+          if (!raw) return;
+          JSON.parse(raw).forEach(function (m) {
+            if (m && m.q && m.a && m.emb && m.emb.length) memory.push(m);
+          });
+        } catch (e) {}
+      }
+
+      window.Neural = {
+        ready: false,
+        extractor: null,
+        addMemory: function (q, a) {
+          var self = this;
+          if (!self.extractor) return;
+          self.extractor('query: ' + q, { pooling: 'mean', normalize: true }).then(function (out) {
+            memory.push({ q: q, a: a, emb: Array.from(out.data), taught: true });
+            persist();
+          }).catch(function () {});
+        },
+        match: function (text) {
+          var self = this;
+          return self.extractor('query: ' + text, { pooling: 'mean', normalize: true }).then(function (out) {
+            var emb = Array.from(out.data);
+            var best = null;
+            for (var i = 0; i < memory.length; i++) {
+              var s = cosine(emb, memory[i].emb);
+              if (!best || s > best.score) best = { score: s, answer: memory[i].a };
+            }
+            return best;
+          });
+        }
+      };
+
+      try {
+        setStatus('Cargando red neuronal…');
+        var extractor = await pipeline('feature-extraction', 'Xenova/multilingual-e5-small', { quantized: true });
+        window.Neural.extractor = extractor;
+        restore();
+        var intents = window.__intents || [];
+        var seeded = 0;
+        for (var i = 0; i < intents.length; i++) {
+          var it = intents[i];
+          var phrases = it.words.slice(0, 3);
+          if (it.answers) {
+            for (var k = 0; k < it.answers.length; k++) {
+              try {
+                var embJ = await extractor('passage: ' + phrases[0] + ' ' + it.answers[k], { pooling: 'mean', normalize: true });
+                memory.push({ q: phrases[0], a: it.answers[k], emb: Array.from(embJ.data) });
+                seeded++;
+              } catch (e) {}
+            }
+          } else {
+            for (var j = 0; j < phrases.length; j++) {
+              try {
+                var embP = await extractor('passage: ' + phrases[j], { pooling: 'mean', normalize: true });
+                memory.push({ q: phrases[j], a: it.answer, emb: Array.from(embP.data) });
+                seeded++;
+              } catch (e) {}
+            }
+          }
+        }
+        window.Neural.ready = memory.length > 0;
+        setStatus(window.Neural.ready ? 'Red neuronal activa · ' + seeded + ' recuerdos' : 'Motor local activo');
+      } catch (e) {
+        setStatus('Motor local activo');
+      }
+    })();
+  </script>
   <script>
     (function () {
       'use strict';
@@ -365,16 +458,17 @@
       var intents = [
         { words: ['hola','buenas','saludos','hey'], answer: '¡Hola! Soy un bot local basado en reglas. Puedo conversar sobre temas básicos, explicar cómo estoy hecho y aprender respuestas durante esta sesión.' },
         { words: ['que puedes hacer','qué puedes hacer','ayuda','opciones','funciones'], answer: 'Puedo reconocer saludos, preguntas frecuentes, conceptos web, la hora, chistes y despedidas. También puedes enseñarme algo temporalmente con:\n/enseñar pregunta | respuesta' },
-        { words: ['como funcionas','cómo funcionas','sin api','puro codigo','puro código','reglas'], answer: 'Trabajo con JavaScript dentro de esta página. Normalizo tu texto, busco palabras clave, puntúo la intención más cercana y elijo una respuesta preescrita. No envío mensajes a ningún servidor.' },
+        { words: ['como funcionas','cómo funcionas','sin api','puro codigo','puro código','reglas','red neuronal','neuronal'], answer: 'Trabajo con JavaScript dentro de esta página. Una red neuronal convierte tu mensaje en un vector semántico y busca en mi memoria la respuesta más parecida por significado; si no estoy seguro, uso reglas de respaldo. No envío tus mensajes a ningún servidor para responder.' },
         { words: ['javascript','js'], answer: 'JavaScript es el lenguaje que da comportamiento a una página web. Aquí recibe tu mensaje, compara palabras clave y construye la respuesta directamente en el navegador.' },
         { words: ['html'], answer: 'HTML define la estructura de una página: títulos, botones, campos y contenido. En este chatbot, HTML forma la interfaz de conversación.' },
         { words: ['css','estilos'], answer: 'CSS controla la presentación: color, tipografía, espaciado y adaptación a móvil. Es la capa visual de este chatbot.' },
-        { words: ['inteligencia artificial','ia','eres inteligente'], answer: 'No soy un modelo de IA generativa. Soy un motor conversacional determinista: respondo usando reglas y conocimiento escrito en el código. Eso me hace ligero y privado, pero limita lo que puedo comprender.' },
+        { words: ['inteligencia artificial','ia','eres inteligente'], answer: 'Uso una red neuronal real: un modelo de embeddings multilingüe que corre en tu navegador. Entiende el significado de tus mensajes y busca en su memoria la mejor respuesta. Aprendo de lo que me enseñas con /enseñar y de la revisión semanal de conversaciones.' },
         { words: ['privacidad','datos','servidor','internet'], answer: 'Esta conversación se procesa en la memoria de la pestaña. No hago peticiones de red para responder y, al recargar, el historial desaparece.' },
         { words: ['chiste','hazme reir','hazme reír'], answers: ['¿Por qué el programador confundió Halloween con Navidad? Porque OCT 31 = DEC 25.', 'Había una vez un código tan limpio… que nadie se atrevía a tocarlo.', '—¿Cuál es el café favorito de un programador?\n—El Java.'] },
         { words: ['gracias','te agradezco'], answer: '¡Con gusto! Si quieres probar el motor, pregúntame cómo funciono o enséñame una respuesta nueva.' },
         { words: ['adios','adiós','hasta luego','nos vemos'], answer: '¡Hasta luego! La conversación se quedará aquí mientras mantengas abierta esta página.' }
       ];
+      window.__intents = intents;
 
       function normalize(text) {
         return text.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9áéíóúñü\s]/gi, ' ').replace(/\s+/g, ' ').trim();
@@ -384,7 +478,7 @@
         return new Date().toLocaleTimeString('es', { hour: '2-digit', minute: '2-digit' });
       }
 
-      function addMessage(text, who) {
+      function addMessage(text, who, source) {
         var row = document.createElement('div');
         row.className = 'message ' + who;
         if (who === 'bot') {
@@ -400,7 +494,7 @@
         body.textContent = text;
         var meta = document.createElement('div');
         meta.className = 'meta';
-        meta.textContent = stamp();
+        meta.textContent = stamp() + (source === 'neural' ? ' · red neuronal' : '');
         bubble.appendChild(body);
         bubble.appendChild(meta);
         row.appendChild(bubble);
@@ -431,6 +525,7 @@
           var question = lesson.shift().trim();
           var answer = lesson.join('|').trim();
           learned.push({ question: question, answer: answer });
+          if (window.Neural && window.Neural.addMemory) window.Neural.addMemory(question, answer);
           return 'Entendido. Durante esta sesión responderé “' + answer + '” cuando me preguntes algo parecido a “' + question + '”.';
         }
         if (n === '/ayuda') {
@@ -471,6 +566,24 @@
           : 'No entendí del todo. Prueba con “¿Qué puedes hacer?” o escribe /ayuda.';
       }
 
+      // Respuesta inteligente: primero la red neuronal (significado),
+      // luego las reglas como respaldo. Los comandos y la hora/fecha
+      // siempre son deterministas.
+      function findAnswerSmart(text) {
+        var n = normalize(text);
+        var deterministic = n.indexOf('/ensenar ') === 0 || n === '/ayuda' ||
+          /\b(hora|que hora|qué hora)\b/.test(n) || /\b(fecha|que dia|qué día|hoy)\b/.test(n);
+        if (deterministic || !(window.Neural && window.Neural.ready)) {
+          return Promise.resolve({ answer: findAnswer(text), source: 'rules' });
+        }
+        return window.Neural.match(text).then(function (m) {
+          if (m && m.score >= 0.62) return { answer: m.answer, source: 'neural' };
+          return { answer: findAnswer(text), source: 'rules' };
+        }).catch(function () {
+          return { answer: findAnswer(text), source: 'rules' };
+        });
+      }
+
       function reply(text) {
         var typing = document.createElement('div');
         typing.className = 'message bot typing';
@@ -480,9 +593,10 @@
         window.setTimeout(function () {
           typing.remove();
           turn += 1;
-          var answer = findAnswer(text);
-          addMessage(answer, 'bot');
-          saveInteraction(text, answer);
+          findAnswerSmart(text).then(function (result) {
+            addMessage(result.answer, 'bot', result.source);
+            saveInteraction(text, result.answer);
+          });
         }, 420);
       }
 
