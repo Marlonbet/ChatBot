@@ -6,6 +6,8 @@
   <meta name="color-scheme" content="light dark" />
   <link rel="icon" href="data:," />
   <title>Chatbot sin API</title>
+  <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore-compat.js"></script>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap');
 
@@ -326,6 +328,40 @@
       var learned = [];
       var turn = 0;
 
+      // Firebase (plan gratuito): guarda cada interacción para mejorar el bot.
+      // La apiKey web es pública por diseño; la seguridad la dan las reglas de Firestore.
+      var db = null;
+      var sessionId = null;
+      try {
+        sessionId = localStorage.getItem('chatbot_session');
+        if (!sessionId) {
+          sessionId = 's-' + Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+          localStorage.setItem('chatbot_session', sessionId);
+        }
+        firebase.initializeApp({
+          apiKey: "AIzaSyCmjSskk5YjCAVAX3XiHZSW1Tkz7sSYVqc",
+          authDomain: "chatbot-marlon.firebaseapp.com",
+          projectId: "chatbot-marlon",
+          storageBucket: "chatbot-marlon.firebasestorage.app",
+          messagingSenderId: "591781973859",
+          appId: "1:591781973859:web:abf9c06119706104454d56"
+        });
+        db = firebase.firestore();
+      } catch (e) { db = null; }
+
+      function saveInteraction(userMessage, botResponse) {
+        if (!db) return;
+        var isFallback = /todav[ií]a no tengo una regla|no entend[ií] del todo/i.test(botResponse);
+        db.collection('interactions').add({
+          sessionId: sessionId,
+          userMessage: String(userMessage).slice(0, 500),
+          botResponse: String(botResponse).slice(0, 2000),
+          wasFallback: isFallback,
+          createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+          page: location.hostname
+        }).catch(function () {});
+      }
+
       var intents = [
         { words: ['hola','buenas','saludos','hey'], answer: '¡Hola! Soy un bot local basado en reglas. Puedo conversar sobre temas básicos, explicar cómo estoy hecho y aprender respuestas durante esta sesión.' },
         { words: ['que puedes hacer','qué puedes hacer','ayuda','opciones','funciones'], answer: 'Puedo reconocer saludos, preguntas frecuentes, conceptos web, la hora, chistes y despedidas. También puedes enseñarme algo temporalmente con:\n/enseñar pregunta | respuesta' },
@@ -444,7 +480,9 @@
         window.setTimeout(function () {
           typing.remove();
           turn += 1;
-          addMessage(findAnswer(text), 'bot');
+          var answer = findAnswer(text);
+          addMessage(answer, 'bot');
+          saveInteraction(text, answer);
         }, 420);
       }
 
