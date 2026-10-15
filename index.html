@@ -640,7 +640,13 @@
           var score = 0;
           intent.words.forEach(function (phrase) {
             var p = normalize(phrase);
-            if (n.indexOf(p) !== -1) score = Math.max(score, p.split(' ').length + 1);
+            // Las palabras cortas sueltas exigen coincidencia de palabra completa
+            // (con plural opcional): si no, "ia" se cuela dentro de "francia",
+            // pero "apis" debe seguir reconociéndose como "api".
+            var hit = p.indexOf(' ') === -1 && p.length <= 3
+              ? new RegExp('(^|\\s)' + p.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + 's?(\\s|$)').test(n)
+              : n.indexOf(p) !== -1;
+            if (hit) score = Math.max(score, p.split(' ').length + 1);
             else score = Math.max(score, similarity(n, p));
           });
           if (score > best.score) best = { score: score, intent: intent };
